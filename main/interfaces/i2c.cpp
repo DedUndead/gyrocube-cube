@@ -1,19 +1,18 @@
-#include "driver/i2c.h"
 #include "i2c.hpp"
+#include "driver/i2c.h"
 
-I2C::I2C(const int& frequency,
-         const uint8_t& sda_pin = I2C_DEFAULT_SDA_PIN,
-         const uint8_t& scl_pin = I2C_DEFAUL_SCL_PIN,
-         const uint8_t& hw_block_number = I2C_DEFAULT_HW_BLOCK) 
+I2C::I2C(const uint32_t& frequency,
+         const uint8_t& sda_pin,
+         const uint8_t& scl_pin,
+         const uint8_t& hw_block_number) : hw_block(hw_block_number)
 {
-    hw_block = hw_block_number
     i2c_config_t conf = {
         .mode = I2C_MODE_MASTER,
         .sda_io_num = sda_pin,
         .scl_io_num = scl_pin,
         .sda_pullup_en = GPIO_PULLUP_ENABLE,
         .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master.clk_speed = frequency,
+        .master = { .clk_speed = frequency }
     };
 
     i2c_param_config(hw_block, &conf);
@@ -22,7 +21,7 @@ I2C::I2C(const int& frequency,
 }
 
 esp_err_t I2C::write_register(const uint8_t& slave_addr,
-                              const uint16_t& reg_addr,
+                              const uint8_t& reg_addr,
                               const uint8_t* data,
                               const uint8_t& tx_len,
                               const uint& timeout) const
@@ -41,12 +40,12 @@ esp_err_t I2C::write_register(const uint8_t& slave_addr,
 }
 
 esp_err_t I2C::read_register(const uint8_t& slave_addr,
-                             const uint16_t& reg_addr,
+                             const uint8_t& reg_addr,
                              uint8_t* buffer,
                              const uint8_t& rx_len,
                              const uint& timeout_ms) const
 {
     return i2c_master_write_read_device(
-        hw_block, slave_addr, &reg_addr, 1, data, rx_len, timeout_ms / portTICK_PERIOD_MS
+        hw_block, slave_addr, &reg_addr, 1, buffer, rx_len, timeout_ms / portTICK_PERIOD_MS
     );
 }
