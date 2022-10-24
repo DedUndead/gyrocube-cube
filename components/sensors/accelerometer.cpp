@@ -1,12 +1,13 @@
-#include <stdio.h>
-#include "sensor/Accelerometer.h"
-#include "interface/i2c.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "accelerometer.hpp"
+#include "i2c.hpp"
 
-Accelerometer::Accelerometer(I2C* i2c_, uint8_t address_, bool fastmode_) :
+Accelerometer::Accelerometer(I2C* i2c_, uint8_t address_, const bool& fastmode_, const uint16_t& threshold) :
     i2c(i2c_),
     address(address_),
     fastmode(fastmode_)
-{ /* Empty constructor budy */ }
+{ /* Empty constructor body */ }
 
 /**
  * @brief Read sensor data
@@ -14,12 +15,12 @@ Accelerometer::Accelerometer(I2C* i2c_, uint8_t address_, bool fastmode_) :
  * @param timeout Read operation timeout
  * @return ESP operation status code 
  */
-esp_err_t Accelerometer::read(acc_measurements& buffer, const uint& timeout = 0)
+esp_err_t Accelerometer::read(accel_measurements& buffer, const uint& timeout)
 {   
     // Fetch raw data
     uint8_t* raw_buffer = buffer_full;
     uint8_t raw_buffer_len = ACCEL_XYZ_BUFFER_FULL_LEN;
-    if (fast_mode) {
+    if (fastmode) {
         raw_buffer = buffer_short;
         raw_buffer_len = ACCEL_XYZ_BUFFER_LEN;
     }
@@ -27,7 +28,7 @@ esp_err_t Accelerometer::read(acc_measurements& buffer, const uint& timeout = 0)
     if (fetch_result != ESP_OK) return fetch_result;
     
     // Apply transfer function to raw data
-    if (fast_mode) {
+    if (fastmode) {
         buffer.x = ((int16_t)(raw_buffer[0] << 8) >> 2) * ACCEL_SCALE_FACTOR;
         buffer.y = ((int16_t)(raw_buffer[1] << 8) >> 2)* ACCEL_SCALE_FACTOR;
         buffer.z = ((int16_t)(raw_buffer[2] << 8) >> 2) * ACCEL_SCALE_FACTOR;
@@ -43,9 +44,10 @@ esp_err_t Accelerometer::read(acc_measurements& buffer, const uint& timeout = 0)
 
 /**
  * @brief Enable accelerometer in normal mode
+ * @param timeout Write operation timeout
  * @return ESP operation status code 
  */
-esp_err_t Accelerometer::enable(const uint& timeout = 0) const
+esp_err_t Accelerometer::enable(const uint& timeout) const
 {
     disable(timeout);
 
@@ -53,7 +55,7 @@ esp_err_t Accelerometer::enable(const uint& timeout = 0) const
     if (fastmode) config = 0b00001111;
     else          config = 0b00001101;
 
-    esp_err_t result = i2c->write_register(address, CTRL_REG1, &config, 1, timeout);
+    esp_err_t result = i2c->write_register(address, ACCEL_CTRL_REG1, &config, 1, timeout);
     vTaskDelay(10);
 
     return result;
@@ -61,10 +63,10 @@ esp_err_t Accelerometer::enable(const uint& timeout = 0) const
 
 /**
  * @brief Disable accelerometer
- * @param timeout Timeout for the transaction 
+ * @param timeout Write operation timeout
  * @return ESP operation status code
  */
-esp_err_t Accelerometer::disable(const uint& timeout = 0) const
+esp_err_t Accelerometer::disable(const uint& timeout) const
 {   
     uint8_t config = 0b00001000;
 
@@ -81,7 +83,7 @@ esp_err_t Accelerometer::disable(const uint& timeout = 0) const
  * @param timeout Read operation timeout
  * @return ESP operation status code
  */
-esp_err_t Accelerometer::fetch_data(uint8_t* buffer, const uint8_t& buffer_len, uint& timeout = 0) const
+esp_err_t Accelerometer::fetch_data(uint8_t* buffer, const uint8_t& buffer_len, const uint& timeout)
 {
     return i2c->read_register(address, ACCEL_OUT_X_MSB, buffer_full, buffer_len, timeout);
 }
@@ -92,10 +94,10 @@ esp_err_t Accelerometer::fetch_data(uint8_t* buffer, const uint8_t& buffer_len, 
  * @return Side index of the cube
  * On error, return ORIENT_UNKNOWN
  */
-uint8_t Accelerometer::get_side(const uint& timeout = 0) const
+uint8_t Accelerometer::get_side(const uint& timeout)
 {   
     accel_measurements reading;
-    if (Accelerometer::read(reading) != ESP_OK) {
+    if (this->read(reading, timeout) != ESP_OK) {
         return ACCEL_ORIENT_UNKNOWN;
     };
 
