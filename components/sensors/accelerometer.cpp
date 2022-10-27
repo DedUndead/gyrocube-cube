@@ -87,7 +87,7 @@ esp_err_t Accelerometer::disable(const uint& timeout) const
  */
 esp_err_t Accelerometer::fetch_data(uint8_t* buffer, const uint8_t& buffer_len, const uint& timeout)
 {
-    return i2c->read_register(address, ACCEL_OUT_X_MSB, buffer_full, buffer_len, timeout);
+    return i2c->read_register(address, ACCEL_OUT_X_MSB, buffer, buffer_len, timeout);
 }
 
 /**
@@ -102,6 +102,7 @@ uint8_t Accelerometer::get_side(const uint& timeout)
     if (this->read(reading, timeout) != ESP_OK) {
         return ACCEL_ORIENT_UNKNOWN;
     };
+    ESP_LOGI("ACCEL", "x %d y %d z %d", reading.x, reading.y, reading.z);
 
     if      (reading.z > threshold)      return 0;
     else if (reading.y < -1 * threshold) return 1;

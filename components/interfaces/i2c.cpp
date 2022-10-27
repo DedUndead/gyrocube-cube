@@ -13,7 +13,7 @@ I2C::I2C(const uint32_t& frequency,
         .scl_io_num = scl_pin,
         .sda_pullup_en = GPIO_PULLUP_DISABLE,
         .scl_pullup_en = GPIO_PULLUP_DISABLE,
-        .master = { .clk_speed = frequency },
+        .master = { .clk_speed = frequency },  
         .clk_flags = 0
     };
 
@@ -31,12 +31,12 @@ esp_err_t I2C::write_register(const uint8_t& slave_addr,
     
     // Include register address into write buffer
     write_buf[0] = reg_addr;
-    for (uint8_t i = 1; i < tx_len; i++) {
+    for (uint8_t i = 1; i < tx_len + 1; i++) {
         write_buf[i] = data[i - 1];
     }
 
     esp_err_t res = i2c_master_write_to_device(
-        hw_block, slave_addr, write_buf, sizeof(write_buf), timeout / portTICK_PERIOD_MS
+        hw_block, slave_addr, write_buf, tx_len + 1, timeout / portTICK_PERIOD_MS
     );
 
     return res;

@@ -5,7 +5,7 @@
 #include "i2c.hpp"
 #include "freertos/FreeRTOS.h"
 
-#define ACCEL_DEFAULT_ADDRESS   (0x1E >> 1)
+#define ACCEL_DEFAULT_ADDRESS   (0x1E)
 #define ACCEL_CTRL_REG1         0x2A
 #define ACCEL_OUT_X_MSB         0x01
 #define ACCEL_SCALE_FACTOR      (float)0.244
