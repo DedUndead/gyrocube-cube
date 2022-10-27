@@ -9,6 +9,7 @@ extern "C" void app_main(void)
 {
     I2C i2c(250 * 1000);
     Accelerometer accelerometer(&i2c);
+    ESP_LOGI("ACEL EN", "%d", accelerometer.enable());
 
     while (1) {
         ESP_LOGI("ACCEL", "%d", accelerometer.get_side());

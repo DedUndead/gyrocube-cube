@@ -3,12 +3,13 @@
 
 
 #include <stdio.h>
+#include "driver/i2c.h"
 #include "esp_err.h"
 
 
-#define I2C_DEFAULT_HW_BLOCK 0
-#define I2C_DEFAULT_SDA_PIN 21
-#define I2C_DEFAUL_SCL_PIN 22
+#define I2C_DEFAULT_HW_BLOCK I2C_NUM_0
+#define I2C_DEFAULT_SDA_PIN GPIO_NUM_21
+#define I2C_DEFAUL_SCL_PIN GPIO_NUM_22
 #define I2C_MAX_TX_BUFFER_LEN 255
 
 
