@@ -17,4 +17,4 @@ extern "C" void app_main(void)
         ESP_LOGI("ACCEL", "%d", accelerometer.get_side());
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
-}
+}  

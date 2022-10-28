@@ -14,7 +14,7 @@
 
 /* ===== CONFIGURABLE PARAMETERS ===== */
 #define RMT_CLOCK_DIVIDER          10  // 80 Mhz / RMT_CLOCK_DIVIDER = Clock Freq MHz
-#define MAX_AMOUNT_OF_PIXELS       30  // Each pixel takes 128 bytes of device memory
+#define MAX_AMOUNT_OF_PIXELS       30  // Each pixel takes 128 bytes of device memory during API call
 
 /**
  * @brief Timings are defined for each specific Adafruit addressable strips
@@ -31,8 +31,10 @@
  * For better understanding of Remote Control Tranceiver in ESP32, refer to
  * https://docs.espressif.com/projects/esp-idf/en/v4.3/esp32/api-reference/peripherals/rmt.html
  * 
-*/
-// Change accorging to your neopixel timings
+ * Change accorging to your neopixel timings
+ * Timings used here are provided in section 10 of example LED:
+ * https://cdn-shop.adafruit.com/product-files/2757/p2757_SK6812RGBW_REV01.pdf
+ */
 enum timing {
     T0H = 3;   // 0 code, high level time
     T0L = 9;   // 0 code, low level time
@@ -51,9 +53,8 @@ public:
     NeoPixel(const uint8_t& number_of_pixels_, const uint8_t& pin_, const rmt_channel& channel_);
     void initialize_strip();
 private:
-     const uint8_t number_of_pixels; 
+    const uint8_t number_of_pixels; 
     // Each pixel color is described with 32 rmt symbols
-    rmt_item32_t rmt_symbols[MAX_AMOUNT_OF_PIXELS * 32];  // TODO: Change to dynamic allocation if called before scheduler
 };
 
 NeoPixel::NeoPixel(const uint8_t& number_of_pixels_, const uint8_t& pin_, const rmt_channel& channel_) :
@@ -77,13 +78,13 @@ NeoPixel::NeoPixel(const uint8_t& number_of_pixels_, const uint8_t& pin_, const 
     ESP_ERROR_CHECK(rmt_config(&rmt_conf));
     ESP_ERROR_CHECK(rmt_driver_install(rmt_conf.channel, 0, 0));
 
-    initialize_strip();
+    clear_strip();
 }
 
 /*
- * @brief Initialize LED strip RMT components
+ * @brief Clear LED strip RMT components
  */
-void NeoPixel::initialize_strip()
+void NeoPixel::clear_strip()
 {
     // Each pixel is represented with 32 rmt symbols, and each symbol contains two configurable composites
     //
@@ -96,6 +97,7 @@ void NeoPixel::initialize_strip()
     //
     // Refer for RMT symbols structure description: 
     // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/rmt.html
+    rmt_item32_t rmt_symbols[MAX_AMOUNT_OF_PIXELS * 32];
 
     for (int i = 0; i < number_of_pixels * PIXEL_LENGTH_RMT_SYMBOL; i++) {
         rmt_symbol[index] = {
@@ -105,4 +107,6 @@ void NeoPixel::initialize_strip()
             .duration1 = timing::T0L  // Set signal to represent logical 0
         }
     }
+
+    rmt_write_items(channel, rmt_symbols, number_of_pixels * PIXEL_LENGTH_RMT_SYMBOL, true);
 }
