@@ -32,7 +32,7 @@ esp_err_t Accelerometer::read(accel_measurements& buffer, const uint& timeout)
     // Apply transfer function to raw data
     if (fastmode) {
         buffer.x = ((int16_t)(raw_buffer[0] << 8) >> 2) * ACCEL_SCALE_FACTOR;
-        buffer.y = ((int16_t)(raw_buffer[1] << 8) >> 2)* ACCEL_SCALE_FACTOR;
+        buffer.y = ((int16_t)(raw_buffer[1] << 8) >> 2) * ACCEL_SCALE_FACTOR;
         buffer.z = ((int16_t)(raw_buffer[2] << 8) >> 2) * ACCEL_SCALE_FACTOR;
     }
     else {

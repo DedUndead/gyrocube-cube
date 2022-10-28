@@ -8,7 +8,7 @@
 #define ACCEL_DEFAULT_ADDRESS   (0x1E)
 #define ACCEL_CTRL_REG1         0x2A
 #define ACCEL_OUT_X_MSB         0x01
-#define ACCEL_SCALE_FACTOR      (float)0.244
+#define ACCEL_SCALE_FACTOR      1000 / 244  // Intentional to avoid float usage
 
 #define ACCEL_XYZ_BUFFER_LEN       3
 #define ACCEL_XYZ_BUFFER_FULL_LEN  6
