@@ -12,6 +12,7 @@ extern "C" void app_main(void)
     NeoPixel led(1, GPIO_NUM_15);
 
     led.set_pixel(0, 0xff, 0x00, 0x00, 0x00);
+    led.refresh();
 
     while (1) {
         vTaskDelay(1000 / portTICK_PERIOD_MS);

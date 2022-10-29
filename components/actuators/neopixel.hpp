@@ -59,6 +59,7 @@ public:
     NeoPixel(const uint8_t& number_of_pixels_,
              const gpio_num_t& pin_,
              const rmt_channel_t& channel_ = DEFAULT_RMT_CHANNEL);
+    void refresh();
     void initialize_strip();
     void set_pixel(const uint8_t& index, const uint32_t& rgb, const uint8_t& white = WHITE_PIXEL_OFF);
     void set_pixel(const uint8_t& index,

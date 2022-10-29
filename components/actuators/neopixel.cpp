@@ -65,6 +65,14 @@ NeoPixel::NeoPixel(const uint8_t& number_of_pixels_, const gpio_num_t& pin_, con
     initialize_strip();
 }
 
+/**
+ * @brief Refresh LED strip with new data
+*/
+void NeoPixel::refresh()
+{
+    ESP_ERROR_CHECK(rmt_write_items(channel, rmt_symbols, number_of_pixels * PIXEL_LENGTH_RMT_SYMBOL, true));
+}
+
 // Each pixel is encoded with 32 rmt symbols, and each symbol contains two configurable composites
 // Thus, 8 rmt symbols correspond to one color byte. Color scheme is GRBW
 //
@@ -92,7 +100,7 @@ void NeoPixel::initialize_strip()
         rmt_symbols[i].duration1 = timing::T0L;  // Set signal to represent logical 0
     }
 
-     ESP_ERROR_CHECK(rmt_write_items(channel, rmt_symbols, number_of_pixels * PIXEL_LENGTH_RMT_SYMBOL, true));
+    refresh();
 }
 
 /**
@@ -153,4 +161,13 @@ void NeoPixel::set_pixel(const uint8_t& index,
 void NeoPixel::reset_neopixel_hardware()
 {
     rmt_symbols[0].duration1 = timing::RST;
+    NeoPixel::refresh();
+
+    for (int i = 0; i < number_of_pixels * PIXEL_LENGTH_RMT_SYMBOL; i++) {
+        rmt_symbols[i].level0 = 1;               // First signal of symbol to be HIGH
+        rmt_symbols[i].duration0 = timing::T0H;  // Set signal to represent logical 0 
+        rmt_symbols[i].level1 = 0;               // Second signal of symbol to be LOW
+        rmt_symbols[i].duration1 = timing::T0L;  // Set signal to represent logical 0
+    }
+    NeoPixel::refresh();
 }
