@@ -153,21 +153,3 @@ void NeoPixel::set_pixel(const uint8_t& index,
         data_bit_selector_mask >>= 1;  // Move to next bit
     }
 }
-
-/**
- * @brief Issue RST command to NeoPixel LEDs
- * Note, that reinitialization of RMT driver is not required
- */
-void NeoPixel::reset_neopixel_hardware()
-{
-    rmt_symbols[0].duration1 = timing::RST;
-    NeoPixel::refresh();
-
-    for (int i = 0; i < number_of_pixels * PIXEL_LENGTH_RMT_SYMBOL; i++) {
-        rmt_symbols[i].level0 = 1;               // First signal of symbol to be HIGH
-        rmt_symbols[i].duration0 = timing::T0H;  // Set signal to represent logical 0 
-        rmt_symbols[i].level1 = 0;               // Second signal of symbol to be LOW
-        rmt_symbols[i].duration1 = timing::T0L;  // Set signal to represent logical 0
-    }
-    NeoPixel::refresh();
-}

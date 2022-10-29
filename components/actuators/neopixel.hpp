@@ -67,7 +67,6 @@ public:
                    const uint8_t& green,
                    const uint8_t& blue,
                    const uint8_t& white);
-    void reset_neopixel_hardware();
 private:
     rmt_item32_t rmt_symbols[MAX_AMOUNT_OF_PIXELS * 32];
     const uint8_t number_of_pixels;
