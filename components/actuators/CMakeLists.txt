@@ -1,2 +1,4 @@
 idf_component_register(SRCS "neopixel.cpp"
-                       INCLUDE_DIRS ".")
+                            "led_controller.cpp"
+                       INCLUDE_DIRS "."
+                       REQUIRES debug)

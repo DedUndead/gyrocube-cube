@@ -12,10 +12,11 @@
 #include "driver/rmt.h"
 
 /* ===== CONSTANTS PARAMETERS ===== */
-#define RMT_NUMBER_OF_MEMORY_BLOCK 3    // 3 since we interface RGB strip
+#define RMT_NUMBER_OF_MEMORY_BLOCK 3
 #define PIXEL_LENGTH_RMT_SYMBOL    32   // Length of one pixel in RMT symbols
 #define RMT_NONE                   0    // Sentinel value for NONE
 #define WHITE_PIXEL_OFF            0x00
+#define RMT_CLOCK_FREQUENCY_MHZ    80
 
 /* ===== CONFIGURABLE PARAMETERS ===== */
 #define RMT_CLOCK_DIVIDER          1   // 80 Mhz / RMT_CLOCK_DIVIDER = Clock Freq MHz
@@ -60,7 +61,7 @@ public:
              const gpio_num_t& pin_,
              const rmt_channel_t& channel_ = DEFAULT_RMT_CHANNEL);
     void refresh();
-    void initialize_strip();
+    void clear_strip();
     void set_pixel(const uint8_t& index, const uint32_t& rgb, const uint8_t& white = WHITE_PIXEL_OFF);
     void set_pixel(const uint8_t& index,
                    const uint8_t& red,

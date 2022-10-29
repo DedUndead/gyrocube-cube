@@ -7,6 +7,7 @@
  */
 #include "neopixel.hpp"
 
+#include <unistd.h>
 #include "driver/rmt.h"
 #include "esp_err.h"
 #include "esp_log.h"
@@ -41,36 +42,18 @@ NeoPixel::NeoPixel(const uint8_t& number_of_pixels_, const gpio_num_t& pin_, con
     number_of_pixels(number_of_pixels_), channel(channel_)
 {
     // Configure Remote Control Tranceiver
-    rmt_config_t rmt_conf = {
-        .rmt_mode = RMT_MODE_TX,
-        .channel = channel,
-        .gpio_num = pin_,
-        .clk_div = RMT_CLOCK_DIVIDER,
-        .mem_block_num = RMT_NUMBER_OF_MEMORY_BLOCK,
-        .flags = RMT_NONE,
-        .tx_config = {
-            .carrier_freq_hz = RMT_NONE,
-            .carrier_level = (rmt_carrier_level_t)RMT_NONE,
-            .idle_level = (rmt_idle_level_t)RMT_IDLE_LEVEL_LOW,
-            .carrier_duty_percent = RMT_NONE,
-            .carrier_en = false,
-            .loop_en = false,
-            .idle_output_en = true,
-        }
-    };
+    rmt_config_t rmt_conf = RMT_DEFAULT_CONFIG_TX(pin_, channel);
+    rmt_conf.clk_div = 1;
 
     ESP_ERROR_CHECK(rmt_config(&rmt_conf));
     ESP_ERROR_CHECK(rmt_driver_install(rmt_conf.channel, 0, 0));
 
-    initialize_strip();
-}
+    for (int i = 0; i < number_of_pixels * PIXEL_LENGTH_RMT_SYMBOL; i++) {
+        rmt_symbols[i].level0 = 1;  // First signal of symbols to be HIGH
+        rmt_symbols[i].level1 = 0;  // Second signal of symbols to be LOW
+    }
 
-/**
- * @brief Refresh LED strip with new data
-*/
-void NeoPixel::refresh()
-{
-    ESP_ERROR_CHECK(rmt_write_items(channel, rmt_symbols, number_of_pixels * PIXEL_LENGTH_RMT_SYMBOL, true));
+    clear_strip();
 }
 
 // Each pixel is encoded with 32 rmt symbols, and each symbol contains two configurable composites
@@ -91,16 +74,23 @@ void NeoPixel::refresh()
 /*
  * @brief Clear LED strip RMT components
  */
-void NeoPixel::initialize_strip()
+void NeoPixel::clear_strip()
 {
     for (int i = 0; i < number_of_pixels * PIXEL_LENGTH_RMT_SYMBOL; i++) {
-        rmt_symbols[i].level0 = 1;               // First signal of symbol to be HIGH
         rmt_symbols[i].duration0 = timing::T0H;  // Set signal to represent logical 0 
-        rmt_symbols[i].level1 = 0;               // Second signal of symbol to be LOW
         rmt_symbols[i].duration1 = timing::T0L;  // Set signal to represent logical 0
     }
 
     refresh();
+}
+
+/**
+ * @brief Refresh LED strip with new data
+*/
+void NeoPixel::refresh()
+{
+    usleep(timing::RST * RMT_CLOCK_DIVIDER / RMT_CLOCK_FREQUENCY_MHZ);
+    ESP_ERROR_CHECK(rmt_write_items(channel, rmt_symbols, number_of_pixels * PIXEL_LENGTH_RMT_SYMBOL, true));
 }
 
 /**
@@ -111,11 +101,7 @@ void NeoPixel::initialize_strip()
  */
 void NeoPixel::set_pixel(const uint8_t& index, const uint32_t& rgb, const uint8_t& white)
 {
-    const uint8_t red = rgb >> 16;
-    const uint8_t green = rgb >> 8;
-    const uint8_t blue = rgb;
-
-    set_pixel(index, red, green, blue, white);
+    set_pixel(index, rgb >> 16, rgb >> 8, rgb, white);
 }
 
 /**
