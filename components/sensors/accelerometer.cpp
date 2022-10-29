@@ -1,5 +1,5 @@
 #include "freertos/FreeRTOS.h"
-#include "unistd.h"
+#include "freertos/task.h"
 #include "accelerometer.hpp"
 #include "i2c.hpp"
 #include "esp_log.h"
@@ -58,7 +58,6 @@ esp_err_t Accelerometer::enable(const uint& timeout) const
     else          config = 0b00001101;
 
     esp_err_t result = i2c->write_register(address, ACCEL_CTRL_REG1, &config, 1, timeout);
-    usleep(10 * 10);
 
     return result;
 }
@@ -73,7 +72,6 @@ esp_err_t Accelerometer::disable(const uint& timeout) const
     uint8_t config = 0b00001000;
 
     esp_err_t result = i2c->write_register(address, ACCEL_CTRL_REG1, &config, 1, timeout);
-    usleep(10 * 10);
 
     return result;
 }

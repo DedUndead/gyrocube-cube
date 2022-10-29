@@ -11,9 +11,8 @@ extern "C" void app_main(void)
 {
     LedController leds(20, GPIO_NUM_4);
 
-    leds.fill_color(0xff, 0x00, 0x00);
-
-    while (1) {
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    while (1) {    
+        leds.gradient(0xff0000, 0x0000ff, 1500);
+        leds.gradient(0x0000ff, 0xff0000, 1500);
     }
 }  

@@ -7,7 +7,7 @@
  */
 #include "neopixel.hpp"
 
-#include <unistd.h>
+#include "freertos/task.h"
 #include "driver/rmt.h"
 #include "esp_err.h"
 #include "esp_log.h"
@@ -89,7 +89,8 @@ void NeoPixel::clear_strip()
 */
 void NeoPixel::refresh()
 {
-    usleep(timing::RST * RMT_CLOCK_DIVIDER / RMT_CLOCK_FREQUENCY_MHZ);
+    // Uncomment to ensure that there is always sufficient amount of time for new data transmission cycle
+    // vTaskDelay(1 / portTICK_PERIOD_MS);  
     ESP_ERROR_CHECK(rmt_write_items(channel, rmt_symbols, number_of_pixels * PIXEL_LENGTH_RMT_SYMBOL, true));
 }
 
