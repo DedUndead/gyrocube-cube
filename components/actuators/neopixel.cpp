@@ -5,67 +5,14 @@
  * @author Pavel Arefyev
  * Contact: deddh1b@gmail.com
  */
+#include "neopixel.hpp"
+
 #include "driver/rmt.h"
 #include "esp_err.h"
 #include "esp_log.h"
 
-/* ===== CONSTANTS PARAMETERS ===== */
-#define RMT_NUMBER_OF_MEMORY_BLOCK 3   // 3 since we interface RGB strip
-#define PIXEL_LENGTH_RMT_SYMBOL    32  // Length of one pixel in RMT symbols
-
-/* ===== CONFIGURABLE PARAMETERS ===== */
-#define RMT_CLOCK_DIVIDER          10  // 80 Mhz / RMT_CLOCK_DIVIDER = Clock Freq MHz
-#define MAX_AMOUNT_OF_PIXELS       30  // Each pixel takes 128 bytes of device memory
-
 /**
- * @brief Timings are defined for each specific Adafruit addressable strips
- * They may differ, the strip used in the project is SK6812, refer to the datasheet
- * 
- * The timings describe duration in RMT tick
- * Default RMT clock source provides frequency of 80 MHz
- * To calculate the amount of ticks N to describe the timing in microseconds T :
- *     
- *     N = T * (80 / clk_div)
- * 
- * Clock divider is set during RMT channel configuration
- * 
- * For better understanding of Remote Control Tranceiver in ESP32, refer to
- * https://docs.espressif.com/projects/esp-idf/en/v4.3/esp32/api-reference/peripherals/rmt.html
- * 
- * Change accorging to your neopixel timings
- * Timings used here are provided in section 10 of example LED:
- * https://cdn-shop.adafruit.com/product-files/2757/p2757_SK6812RGBW_REV01.pdf
- */
-enum timing {
-    T0H = 3,   // 0 code, high level time
-    T0L = 9,   // 0 code, low level time
-    T1H = 6,   // 1 code, high level time
-    T1L = 6,   // 1 code, low level time
-    RST = 800  // Reset code，low level time
-};
-
-/**
- * @brief This class provides abstraction for Addressable LED strip by AdaFruit.
- * The interface set us the correct timings for signaling and provides API
- * for basic color control.
-*/
-class NeoPixel {
-public:
-    NeoPixel(const uint8_t& number_of_pixels_, const gpio_num_t& pin_, const rmt_channel_t& channel_);
-    void clear_strip();
-    void set_pixel(const uint8_t& index,
-                   const uint8_t& red,
-                   const uint8_t& green,
-                   const uint8_t& blue,
-                   const uint8_t& white);
-private:
-    rmt_item32_t rmt_symbols[MAX_AMOUNT_OF_PIXELS * 32];
-    const uint8_t number_of_pixels;
-    const rmt_channel_t channel;
-};
-
-/**
- * @brief Gamma correction function
+ * Gamma correction table
  * Gamma correction is necessary to transmit true tone of the colors
  * Read more about gamma correction effect:
  * https://cdn-learn.adafruit.com/downloads/pdf/led-tricks-gamma-correction.pdf 
@@ -100,19 +47,22 @@ NeoPixel::NeoPixel(const uint8_t& number_of_pixels_, const gpio_num_t& pin_, con
         .gpio_num = pin_,
         .clk_div = RMT_CLOCK_DIVIDER,
         .mem_block_num = RMT_NUMBER_OF_MEMORY_BLOCK,
-        .flags = 0,
+        .flags = RMT_NONE,
         .tx_config = {
-            .loop_en = false,
+            .carrier_freq_hz = RMT_NONE,
+            .carrier_level = (rmt_carrier_level_t)RMT_NONE,
+            .idle_level = (rmt_idle_level_t)RMT_IDLE_LEVEL_LOW,
+            .carrier_duty_percent = RMT_NONE,
             .carrier_en = false,
+            .loop_en = false,
             .idle_output_en = true,
-            .idle_level = RMT_IDLE_LEVEL_LOW,
         }
     };
 
     ESP_ERROR_CHECK(rmt_config(&rmt_conf));
     ESP_ERROR_CHECK(rmt_driver_install(rmt_conf.channel, 0, 0));
 
-    clear_strip();
+    initialize_strip();
 }
 
 // Each pixel is encoded with 32 rmt symbols, and each symbol contains two configurable composites
@@ -133,7 +83,7 @@ NeoPixel::NeoPixel(const uint8_t& number_of_pixels_, const gpio_num_t& pin_, con
 /*
  * @brief Clear LED strip RMT components
  */
-void NeoPixel::clear_strip()
+void NeoPixel::initialize_strip()
 {
     for (int i = 0; i < number_of_pixels * PIXEL_LENGTH_RMT_SYMBOL; i++) {
         rmt_symbols[i].level0 = 1;               // First signal of symbol to be HIGH
@@ -142,7 +92,22 @@ void NeoPixel::clear_strip()
         rmt_symbols[i].duration1 = timing::T0L;  // Set signal to represent logical 0
     }
 
-    rmt_write_items(channel, rmt_symbols, number_of_pixels * PIXEL_LENGTH_RMT_SYMBOL, true);
+     ESP_ERROR_CHECK(rmt_write_items(channel, rmt_symbols, number_of_pixels * PIXEL_LENGTH_RMT_SYMBOL, true));
+}
+
+/**
+ * @brief Set pixel color with RGB colorcode
+ * @param index Index of the pixel in the strip
+ * @param rgb   RGB colorcode
+ * @param white White LED intensity 
+ */
+void NeoPixel::set_pixel(const uint8_t& index, const uint32_t& rgb, const uint8_t& white)
+{
+    const uint8_t red = rgb >> 16;
+    const uint8_t green = rgb >> 8;
+    const uint8_t blue = rgb;
+
+    set_pixel(index, red, green, blue, white);
 }
 
 /**
@@ -158,12 +123,12 @@ void NeoPixel::set_pixel(const uint8_t& index,
     if (index >= number_of_pixels) return;
 
     const uint32_t pixel_color = (gamma8[green] << 24) | 
-                                 (gamma8[red] << 16)   | 
-                                 (gamma8[blue] << 8)   | 
+                                 (gamma8[red]   << 16) | 
+                                 (gamma8[blue]  << 8)  | 
                                  (gamma8[white]);
 
     uint32_t data_bit_selector_mask = 1 << (PIXEL_LENGTH_RMT_SYMBOL - 1);
-    uint16_t start_bit = index * PIXEL_LENGTH_RMT_SYMBOL;
+    const uint16_t start_bit = index * PIXEL_LENGTH_RMT_SYMBOL;
 
     for (int i = start_bit; i < start_bit + PIXEL_LENGTH_RMT_SYMBOL; i++) {
         // Encode 1
@@ -179,4 +144,13 @@ void NeoPixel::set_pixel(const uint8_t& index,
 
         data_bit_selector_mask >>= 1;  // Move to next bit
     }
+}
+
+/**
+ * @brief Issue RST command to NeoPixel LEDs
+ * Note, that reinitialization of RMT driver is not required
+ */
+void NeoPixel::reset_neopixel_hardware()
+{
+    rmt_symbols[0].duration1 = timing::RST;
 }
