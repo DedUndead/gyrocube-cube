@@ -21,12 +21,12 @@ void led_test()
 
 void i2c_test()
 {
-    I2C i2c(150000);
+    I2C i2c(250 * 1000);
     Accelerometer accel(&i2c);
 
     accel.enable();
     while (1) {
-        accel.get_side();
+        ESP_LOGI("ACCEL", "%d", accel.get_side());
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
@@ -49,5 +49,5 @@ void motor_test()
 
 extern "C" void app_main(void)
 {
-    motor_test();
+    i2c_test();
 }  
