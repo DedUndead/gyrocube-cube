@@ -4,4 +4,4 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(gyrocube)
 
 set(EXTRA_COMPONENT_DIRS
-    network)
+    rtos)

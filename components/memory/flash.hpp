@@ -13,11 +13,11 @@ class Flash {
 public:
     Flash();
     ~Flash();
-    esp_err_t read();
-    esp_err_t write();
+    esp_err_t read(const char* key, void* out_value, size_t* length);
+    esp_err_t write(const char* key, void* out_value, size_t length);
 private:
     nvs_handle_t handle;
-}
+};
 
 
 #endif

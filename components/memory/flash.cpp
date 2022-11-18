@@ -1,5 +1,7 @@
+#include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "esp_flash.h"
+#include "flash.hpp"
+#include "nvs_flash.h"
 
 
 Flash::Flash()
@@ -32,10 +34,10 @@ esp_err_t Flash::read(const char* key, void* out_value, size_t* length)
  * @param length Data length
  * @return Status code of operataion
  */
-esp_err_t Flash::write(const char* key, void* out_value, size_t* length)
+esp_err_t Flash::write(const char* key, void* out_value, size_t length)
 {
     esp_err_t result = nvs_set_blob(handle, key, out_value, length);
-    esp_err_t result &= nvs_commit(handle);
+    result &= nvs_commit(handle);
 
     return result;
 }

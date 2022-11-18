@@ -1,5 +1,5 @@
 class ApplicationLayer {
 public:
-    ApplicationLayer()
+    ApplicationLayer();
 private:
 };
