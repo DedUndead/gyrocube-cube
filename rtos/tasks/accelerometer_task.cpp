@@ -1,5 +1,6 @@
 #include "i2c.hpp"
 #include "accelerometer.hpp"
+#include "task_resources.hpp"
 
 #include "freertos/timers.h"
 
@@ -29,7 +30,7 @@ static bool all_equal(uint8_t* buffer, const uint8_t& size)
     return true;
 }
 
-void vAccelerometerTask(void* pvParameters)
+void v_accelerometer_task(void* pvParameters)
 {
     // Avoid allocating dynamic memory from tasks
     BinarySemaphore sample_sem;
@@ -60,8 +61,9 @@ void vAccelerometerTask(void* pvParameters)
             sample_buffer[i] = side;
         }
 
+        // Cube should be stable BUFFER_WINDOW_SIZE * SAMPLE_TIMER_MS ms to signal change
         if (all_equal(sample_buffer, BUFFER_WINDOW_SIZE)) {
-            // Give new side
+            accelerometer_side_queue->push_back(sample_buffer[0]);
         };
     }
 }
