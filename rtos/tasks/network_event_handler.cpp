@@ -5,8 +5,6 @@
  */
 #include "freertos/event_groups.h"
 
-static esp_mqtt_client_handle_t client = NULL;
-
 /*
  * @brief Simple event handler to monitor the mqtt/wifi connection
  */
@@ -82,7 +80,7 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
     case MQTT_EVENT_DATA:
         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
 
-        accelerometer_side_queue->push_back({
+        mqtt_receive_queue->push_back({
             .data = event->data,
             .topic = event->topic,
             .data_length = event->data_len

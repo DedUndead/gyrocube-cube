@@ -8,7 +8,7 @@
 
 static BinarySemaphore* ready_to_sample;
 
-
+/* Callback for software timer responsible for sampling */
 static void sample_cube_side(TimerHandle_t xTimer)
 {
     if (ready_to_sample != nullptr) { 
