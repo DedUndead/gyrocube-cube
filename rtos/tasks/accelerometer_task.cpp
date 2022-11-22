@@ -1,3 +1,4 @@
+#include "accelerometer_task.hpp"
 #include "i2c.hpp"
 #include "accelerometer.hpp"
 #include "task_resources.hpp"
@@ -5,13 +6,6 @@
 #include "freertos/timers.h"
 
 
-#define I2C_BUS_FREQUENCY 250 * 1000
-
-#define SAMPLE_TIMER_TAG "ACCSAMPLE"
-#define SAMPLE_TIMER_ID  0
-#define SAMPLE_TIMER_MS  100
-
-#define BUFFER_WINDOW_SIZE 3
 static BinarySemaphore* ready_to_sample;
 
 
@@ -22,21 +16,29 @@ static void sample_cube_side(TimerHandle_t xTimer)
     }
 }
 
-static bool all_equal(uint8_t* buffer, const uint8_t& size)
+static bool all_equal(const ring_buffer<uint8_t>& buffer)
 {
-    for (int i = 1; i < size; i++) {
-        if (buffer[i] != buffer[i - 1]) return false;
+    uint8_t raw_buffer = buffer.get_raw_buffer_pointer();
+    for (int i = 1; i < buffer.capacity(); i++) {
+        if (raw_buffer[i] != raw_buffer[i - 1]) return false;
     }
+
     return true;
 }
 
+/*
+ * @brief Accelerometer task
+ * Samples current cube side with SAMPLE_TIMER_MS period
+ * After three successive samples are received, the side update message is sent
+ * It uses circular buffer for the most efficiency
+ */
 void v_accelerometer_task(void* pvParameters)
 {
     // Avoid allocating dynamic memory from tasks
     BinarySemaphore sample_sem;
     ready_to_sample = &sample_sem;
 
-    uint8_t sample_buffer[BUFFER_WINDOW_SIZE];
+    ring_buffer<uint8_t> buffer(BUFFER_WINDOW_SIZE);
 
     I2C i2c(I2C_BUS_FREQUENCY);
 
@@ -51,18 +53,16 @@ void v_accelerometer_task(void* pvParameters)
 		sample_cube_side
 	);
 	xTimerStart(accelerometer_sample_timer, portMAX_DELAY);
-    
+
     while (true)
     {   
-        // Take BUFFER_WINDOW_SIZE samples before making a decision whether side changed
-        for (int i = 0; i < BUFFER_WINDOW_SIZE; i++) {
-            sem_sample.take();
-            uint8_t side = accelerometer.get_side();
-            sample_buffer[i] = side;
-        }
+        sem_sample.take();
 
-        // Cube should be stable BUFFER_WINDOW_SIZE * SAMPLE_TIMER_MS ms to signal change
-        if (all_equal(sample_buffer, BUFFER_WINDOW_SIZE)) {
+        uint8_t side = accelerometer.get_side();
+        buffer.put(side);
+
+        // Cube should be stable for BUFFER_WINDOW_SIZE * SAMPLE_TIMER_MS ms to signal change
+        if (buffer.full() && all_equal(buffer)) {
             accelerometer_side_queue->push_back(sample_buffer[0]);
         };
     }

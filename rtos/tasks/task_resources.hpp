@@ -4,6 +4,12 @@
 #include "queue.hpp"
 #include "semaphore.hpp"
 
+typedef struct {
+    char* data;
+    char* topic;
+    int data_len;
+} message;
+
 extern QueueWrapper* accelerometer_side_queue;
 extern QueueWrapper* mqtt_message_queue;
 

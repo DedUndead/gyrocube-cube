@@ -3,12 +3,10 @@
 
 /* This module contains event handlers for Wi-Fi and Mqtt event loop */
 
-esp_err_t network_event_handler(void *ctx, system_event_t *event);
-void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data);
-void mqtt_app_start(void);
-void init_wifi_mqtt(void);
+#define MQTT_CONNECTED_NETWORK_EVENT_BIT 0x01
 
-extern bool mqtt_connected = false;
+
+void init_wifi_mqtt(void);
 
 
 #define NETWORK_EVENT_HANDLER_HPP
