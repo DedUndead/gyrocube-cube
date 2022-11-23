@@ -3,6 +3,7 @@
  * There is not Cpp wrapper written for MQTT. Could be done, but there is not particular 
  * reason, since the functionality is event-based.
  */
+#include "network_definitions.hpp"
 #include "freertos/event_groups.h"
 
 /*
@@ -80,11 +81,12 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
     case MQTT_EVENT_DATA:
         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
 
-        mqtt_receive_queue->push_back({
+        message msg = {
             .data = event->data,
             .topic = event->topic,
             .data_length = event->data_len
-        });
+        }
+        mqtt_receive_queue->push_back(msg);
 
         break;
     case MQTT_EVENT_ERROR:

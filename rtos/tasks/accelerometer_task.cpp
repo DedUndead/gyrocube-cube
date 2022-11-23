@@ -1,7 +1,7 @@
 #include "accelerometer_task.hpp"
 #include "i2c.hpp"
 #include "accelerometer.hpp"
-#include "task_resources.hpp"
+#include "shared_resources.hpp"
 
 #include "freertos/timers.h"
 

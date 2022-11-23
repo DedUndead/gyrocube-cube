@@ -1,4 +1,5 @@
-#include "task_resources.hpp"
+#include "shared_resources.hpp"
+#include "network_definitions.hpp"
 
 #define MAX_NUMBER_OF_TOKENS 10
 
