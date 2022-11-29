@@ -49,5 +49,5 @@ void motor_test()
 
 extern "C" void app_main(void)
 {
-    i2c_test();
+    motor_test();
 }  

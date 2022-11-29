@@ -2,6 +2,8 @@
 #define RING_BUFFER_HPP
 
 
+#include <stddef.h>
+
 #define RING_BUFFER_MAX_SIZE 50
 
 /* 
@@ -11,9 +13,9 @@
  */
 template <class T> class ring_buffer {
 public:
-	explicit ring_buffer(size_t size) : max_size_(size) { }
+	explicit ring_buffer(size_t size) : max_size(size) { }
 	void put(T item);
-	T get(bool consume = True);
+	T get(bool consume = false);
     T* get_raw_buffer_pointer();
 	void reset();
 	bool empty() const;
@@ -25,7 +27,7 @@ private:
 	size_t head = 0;
 	size_t tail = 0;
 	const size_t max_size;
-	bool full = false;
+	bool full_ = false;
 };
 
 

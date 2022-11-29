@@ -18,7 +18,6 @@ void v_receiver_task(void* pvParameters)
     while (true) {
         message msg = mqtt_transmit_queue->consume();
         xEventGroupWaitBits(network_event_group, MQTT_CONNECTED_NETWORK_EVENT_BIT, pdFALSE, pdTRUE, portMAX_DELAY);
-        
-        esp_mqtt_client_publish(client, "/cube", "Helllo World", 0, 0, 0);
+        esp_mqtt_client_publish(client, msg.topic, msg.data, 0, 0, 0);
     }
 }

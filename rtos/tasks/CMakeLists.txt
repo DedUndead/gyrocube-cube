@@ -4,7 +4,8 @@ SET(srcs "accelerometer_task.cpp"
 SET(deps primitives
          sensors
          json
-         memory)
+         memory
+         actuators)
 
 idf_component_register(SRCS ${srcs}
                        INCLUDE_DIRS "."

@@ -1,15 +1,46 @@
 #include "shared_resources.hpp"
 #include "network_definitions.hpp"
 
-#define MAX_NUMBER_OF_TOKENS 10
+#include "vibration_motor.hpp"
 
-// Use Jasmine as multi-include
-#define JSMN_HEADER
-#include "jsmn.h"
+#include <string>
+#include <stdio.h>
 
-void dispatch_event(jsmntok_t* tokens, const uint8_t& number_of_tokens)
+
+/* Event dispatcher function */
+static bool parse_json(char* json_, jsmntok_t* tokens, const uint8_t& number_of_tokens)
 {
-    
+    uint8_t index = 0;
+    std::string key;
+
+    // Verify that first token is tag
+    key = get_token_string(tokens, raw);
+    if (key != "mtag") return false;
+    index++;
+
+    // Parse tag value
+    key = get_token_string(tokens, raw);
+    uint8_t tag;
+    if (sscanf(key.c_str(), "%d", &tag) != 1) return false;
+
+    switch (tag) {
+        case message_tag.CUBE_UPDATE_CONFIG_REQ:
+            return issue_cube_update(json_, tokens, number_of_tokens);
+            break;
+        case message_tag.PING:
+            motor_vibrate(MOTOR_DEFAULT_DURATION_MS);
+            break;
+        default:
+            return false;
+    }
+}
+
+static std::string get_token_string(const jsmntok_t& tok, char* raw)
+{
+    std::string json(json_);
+    size_t length = tokens[index].end - tokens[index].start;
+
+    return json.substr(key.start, length);
 }
 
 /*
@@ -18,6 +49,8 @@ void dispatch_event(jsmntok_t* tokens, const uint8_t& number_of_tokens)
  */
 void v_receiver_task(void* pvParameters)
 {   
+    motor_initialize(MOTOR_PIN);
+
     jsmn_parser json;
     jsmntok_t tokens[MAX_NUMBER_OF_TOKENS];
 
@@ -27,11 +60,17 @@ void v_receiver_task(void* pvParameters)
         message msg = mqtt_receive_queue->consume();
 
         uint8_t ret = jsmn_parse(&parser, msg.data, msg.data_len, tokens, MAX_NUMBER_OF_TOKENS);
-        if (ret) {
-            dispatch_event(tokens, MAX_NUMBER_OF_TOKENS);
+        bool event_dispatched = false;
+
+        if (ret >= MIN_NUMBER_OF_TOKENS) {
+            event_dispatched = parse_json(msg.data, tokens, ret);
         }
         else {
-            // Put error in transmit queue, i.e., echo back error
+            // Put GARBISH error
+        }
+
+        if (!event_dispatched) {
+            // Put UNKNOWN JSON error
         }
     }
 }
