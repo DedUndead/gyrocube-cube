@@ -1,6 +1,7 @@
 #ifndef VIBRATION_MOTOR_CPP
 #define VIBRATION_MOTOR_CPP
 
+#include "driver/gpio.h"
 
 #define MOTOR_TIMER_TAG  "MOTORTIMER"
 #define MOTOR_TIMER_ID   1

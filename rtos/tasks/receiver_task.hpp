@@ -2,10 +2,12 @@
 #define REVEIVER_TASK_HPP
 
 
+#include "driver/gpio.h"
+
 #define MAX_NUMBER_OF_TOKENS 10
 #define MIN_NUMBER_OF_TOKENS 4
 
-#define MOTOR_PIN 4
+#define MOTOR_PIN GPIO_NUM_4
 #define MOTOR_DEFAULT_DURATION_MS 200
 
 // Use Jasmine as multi-include

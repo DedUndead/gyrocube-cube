@@ -1,6 +1,10 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#include "shared_resources.hpp"
+#include "accelerometer_task.hpp"
+#include "display_task.hpp"
+
 #include "esp_log.h"
 
 #include "i2c.hpp"
@@ -9,39 +13,34 @@
 #include "vibration_motor.hpp"
 #include "flash.hpp"
 #include "driver/gpio.h"
+#include "mqtt_client.h"
 
+// Extern resources declaration
+QueueWrapper* accelerometer_side_queue;
+esp_mqtt_client_handle_t client;
 
-void led_test()
+static void init_rtos_shared_resources()
 {
-    LedController leds(20, GPIO_NUM_5);
+    const uint16_t default_serive_queue_size = 10;
 
-    while (1) {    
-        leds.gradient(0xff0000, 0x0000ff, 1500);
-        leds.gradient(0x0000ff, 0xff0000, 1500);
-    }
-}
-
-void i2c_test()
-{
-    I2C i2c(250 * 1000);
-    Accelerometer accel(&i2c);
-
-    accel.enable();
-    while (1) {
-        ESP_LOGI("ACCEL", "%d", accel.get_side());
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-    }
-}
-
-void motor_test()
-{
-    motor_initialize(gpio_num_t(4));
-    motor_vibrate(5000);
-    while (true);
+    // Ignore -Wunused-variable since shared resources are declared extern
+    accelerometer_side_queue = new QueueWrapper(default_serive_queue_size, sizeof(uint8_t));
+    client = NULL;
 }
 
 
 extern "C" void app_main(void)
 {
-    i2c_test();
+    init_rtos_shared_resources();
+
+    // Task sizes were identified imperatively and as multiples of configMINIMAL_STACK_SIZE
+    xTaskCreate(v_accelerometer_task, 
+                "Accelerometer Task",
+                configMINIMAL_STACK_SIZE * 3,
+                NULL,
+                (tskIDLE_PRIORITY + 1UL),
+                (TaskHandle_t *)NULL);
+
+    // Note: Schedulered is called automatically - ESP-IDF feature
+    // Refer to: https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/freertos.html
 }  

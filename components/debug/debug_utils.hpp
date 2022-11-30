@@ -3,6 +3,7 @@
 
 
 /* Simple debug utils for developing */
+/* Remember to remove or use single-include when releasing */
 
 #include "driver/rmt.h"
 #include "esp_log.h"

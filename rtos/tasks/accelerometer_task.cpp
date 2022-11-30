@@ -2,23 +2,24 @@
 #include "i2c.hpp"
 #include "accelerometer.hpp"
 #include "shared_resources.hpp"
+#include "ring_buffer.hpp"
+#include "esp_log.h"
 
 #include "freertos/timers.h"
-
 
 static BinarySemaphore* ready_to_sample;
 
 /* Callback for software timer responsible for sampling */
 static void sample_cube_side(TimerHandle_t xTimer)
 {
-    if (ready_to_sample != nullptr) { 
-	    ready_to_sample.give();
+    if (ready_to_sample != nullptr) {
+	    ready_to_sample->give();
     }
 }
 
-static bool all_equal(const ring_buffer<uint8_t>& buffer)
+static bool all_equal(ring_buffer<uint8_t>& buffer)
 {
-    uint8_t raw_buffer = buffer.get_raw_buffer_pointer();
+    uint8_t* raw_buffer = buffer.get_raw_buffer_pointer();
     for (int i = 1; i < buffer.capacity(); i++) {
         if (raw_buffer[i] != raw_buffer[i - 1]) return false;
     }
@@ -56,14 +57,18 @@ void v_accelerometer_task(void* pvParameters)
 
     while (true)
     {   
-        sem_sample.take();
+        sample_sem.take();
 
         uint8_t side = accelerometer.get_side();
         buffer.put(side);
 
+        ESP_LOGI(V_ACCELEROMETER_TASK_LOG_TAG, "Sample ready: %d", side);
+
         // Cube should be stable for BUFFER_WINDOW_SIZE * SAMPLE_TIMER_MS ms to signal change
         if (buffer.full() && all_equal(buffer)) {
-            accelerometer_side_queue->push_back(sample_buffer[0]);
+            uint8_t sample_to_send = buffer.get(false);
+            accelerometer_side_queue->send_back(&sample_to_send);
+            ESP_LOGI(V_ACCELEROMETER_TASK_LOG_TAG, "Sample sent.");
         };
     }
 }

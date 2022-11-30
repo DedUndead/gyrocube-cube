@@ -101,11 +101,11 @@ uint8_t Accelerometer::get_side(const uint& timeout)
         return ACCEL_ORIENT_UNKNOWN;
     };
 
-    if      (reading.z > threshold)      { ESP_LOGI("ACCEL 1", "%d %d", reading.z, threshold); return 1; }
-    else if (reading.y < -1 * threshold) { ESP_LOGI("ACCEL 2", "%d %d", reading.y, threshold); return 2; }
-    else if (reading.x < -1 * threshold) { ESP_LOGI("ACCEL 3", "%d %d", reading.x, threshold); return 3; }
-    else if (reading.x > threshold)      { ESP_LOGI("ACCEL 4", "%d %d", reading.x, threshold); return 4; }
-    else if (reading.y > threshold)      { ESP_LOGI("ACCEL 5", "%d %d", reading.y, threshold); return 5; }
-    else if (reading.z < -1 * threshold) { ESP_LOGI("ACCEL 6", "%d %d", reading.z, threshold); return 6; }
+    if      (reading.z > threshold)      return 1;
+    else if (reading.y < -1 * threshold) return 2;
+    else if (reading.x < -1 * threshold) return 3;
+    else if (reading.x > threshold)      return 4;
+    else if (reading.y > threshold)      return 5;
+    else if (reading.z < -1 * threshold) return 6;
     else                                 return ACCEL_ORIENT_UNKNOWN;
 }
