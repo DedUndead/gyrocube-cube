@@ -4,7 +4,7 @@
 #include "i2c.hpp"
 #include "esp_log.h"
 
-Accelerometer::Accelerometer(I2C* i2c_, uint8_t address_, const bool& fastmode_, const uint16_t& threshold) :
+Accelerometer::Accelerometer(I2C* i2c_, uint8_t address_, const bool& fastmode_, const int& threshold) :
     i2c(i2c_),
     address(address_),
     fastmode(fastmode_),
@@ -100,13 +100,12 @@ uint8_t Accelerometer::get_side(const uint& timeout)
     if (this->read(reading, timeout) != ESP_OK) {
         return ACCEL_ORIENT_UNKNOWN;
     };
-    ESP_LOGI("ACCEL", "x %d y %d z %d", reading.x, reading.y, reading.z);
 
-    if      (reading.z > threshold)      return 0;
-    else if (reading.y < -1 * threshold) return 1;
-    else if (reading.x < -1 * threshold) return 2;
-    else if (reading.x > threshold)      return 3;
-    else if (reading.y > threshold)      return 4;
-    else if (reading.z < -1 * threshold) return 5;
+    if      (reading.z > threshold)      { ESP_LOGI("ACCEL 1", "%d %d", reading.z, threshold); return 1; }
+    else if (reading.y < -1 * threshold) { ESP_LOGI("ACCEL 2", "%d %d", reading.y, threshold); return 2; }
+    else if (reading.x < -1 * threshold) { ESP_LOGI("ACCEL 3", "%d %d", reading.x, threshold); return 3; }
+    else if (reading.x > threshold)      { ESP_LOGI("ACCEL 4", "%d %d", reading.x, threshold); return 4; }
+    else if (reading.y > threshold)      { ESP_LOGI("ACCEL 5", "%d %d", reading.y, threshold); return 5; }
+    else if (reading.z < -1 * threshold) { ESP_LOGI("ACCEL 6", "%d %d", reading.z, threshold); return 6; }
     else                                 return ACCEL_ORIENT_UNKNOWN;
 }

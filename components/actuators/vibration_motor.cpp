@@ -21,14 +21,13 @@ void motor_initialize(const gpio_num_t& pin)
     gpio_reset_pin(motor_pin);
     gpio_set_direction(motor_pin, GPIO_MODE_OUTPUT);
 
-    TimerHandle_t motor_timer = xTimerCreate(
+    motor_timer = xTimerCreate(
 		MOTOR_TIMER_TAG,
 		pdMS_TO_TICKS(50),  // Arbitrary
 		pdFALSE,
 		(void*) MOTOR_TIMER_ID,
 		turn_motor_off
 	);
-    xTimerStart(motor_timer, portMAX_DELAY);
 }
 
 void motor_vibrate(const uint& duration)

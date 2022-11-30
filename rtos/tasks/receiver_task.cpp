@@ -53,11 +53,12 @@ void v_receiver_task(void* pvParameters)
 
     jsmn_parser json;
     jsmntok_t tokens[MAX_NUMBER_OF_TOKENS];
-
     jsmn_init(&parser);
 
+    message msg;
+
     while (true) {
-        message msg = mqtt_receive_queue->consume();
+        mqtt_receive_queue->consume(&msg);
 
         uint8_t ret = jsmn_parse(&parser, msg.data, msg.data_len, tokens, MAX_NUMBER_OF_TOKENS);
         bool event_dispatched = false;
