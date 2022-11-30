@@ -7,7 +7,7 @@
 #define ACCEL_QUEUE_TIMEOUT 100
 
 #define LED_STRIP_PIN GPIO_NUM_5
-#define LED_STRIP_NUMBER_OF_LEDS 15
+#define LED_STRIP_NUMBER_OF_LEDS 30
 
 typedef struct {
     uint32_t color;

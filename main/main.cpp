@@ -4,6 +4,7 @@
 #include "shared_resources.hpp"
 #include "accelerometer_task.hpp"
 #include "display_task.hpp"
+#include "network_event_handler.hpp"
 
 #include "esp_log.h"
 
@@ -32,6 +33,7 @@ static void init_rtos_shared_resources()
 extern "C" void app_main(void)
 {
     init_rtos_shared_resources();
+    init_wifi_mqtt();
 
     // Task sizes were identified imperatively and as multiples of configMINIMAL_STACK_SIZE
     
@@ -44,7 +46,7 @@ extern "C" void app_main(void)
     
     xTaskCreate(v_display_task,
                 "Display Task",
-                configMINIMAL_STACK_SIZE * 8,
+                configMINIMAL_STACK_SIZE * 12,
                 NULL,
                 (tskIDLE_PRIORITY + 1UL),
                 (TaskHandle_t *)NULL);
