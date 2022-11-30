@@ -17,6 +17,7 @@ static void sample_cube_side(TimerHandle_t xTimer)
     }
 }
 
+/* Verify that all elemnts of the ring buffer are equal */
 static bool all_equal(ring_buffer<uint8_t>& buffer)
 {
     uint8_t* raw_buffer = buffer.get_raw_buffer_pointer();
@@ -38,6 +39,7 @@ void v_accelerometer_task(void* pvParameters)
     // Avoid allocating dynamic memory from tasks
     BinarySemaphore sample_sem;
     ready_to_sample = &sample_sem;
+    uint8_t last_sample = -1;
 
     ring_buffer<uint8_t> buffer(BUFFER_WINDOW_SIZE);
 
@@ -62,13 +64,12 @@ void v_accelerometer_task(void* pvParameters)
         uint8_t side = accelerometer.get_side();
         buffer.put(side);
 
-        ESP_LOGI(V_ACCELEROMETER_TASK_LOG_TAG, "Sample ready: %d", side);
-
         // Cube should be stable for BUFFER_WINDOW_SIZE * SAMPLE_TIMER_MS ms to signal change
-        if (buffer.full() && all_equal(buffer)) {
-            uint8_t sample_to_send = buffer.get(false);
-            accelerometer_side_queue->send_back(&sample_to_send);
-            ESP_LOGI(V_ACCELEROMETER_TASK_LOG_TAG, "Sample sent.");
+        if (buffer.full() && all_equal(buffer) && side != last_sample) {
+            last_sample = buffer.get(false);
+            accelerometer_side_queue->send_back(&last_sample);
+
+            ESP_LOGI(V_ACCELEROMETER_TASK_LOG_TAG, "Side sample sent: %d", last_sample);
         };
     }
 }

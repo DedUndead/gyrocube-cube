@@ -40,7 +40,7 @@ void v_display_task(void* pvParameters)
     Flash flash;
     LedController leds(LED_STRIP_NUMBER_OF_LEDS, LED_STRIP_PIN);
 
-    init_flash_with_default_configuration(flash);
+    //init_flash_with_default_configuration(flash);
 
     while (true) {
         accelerometer_side_queue->consume(&new_side, ACCEL_QUEUE_TIMEOUT);

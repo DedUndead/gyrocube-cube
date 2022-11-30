@@ -34,9 +34,17 @@ extern "C" void app_main(void)
     init_rtos_shared_resources();
 
     // Task sizes were identified imperatively and as multiples of configMINIMAL_STACK_SIZE
+    
     xTaskCreate(v_accelerometer_task, 
                 "Accelerometer Task",
                 configMINIMAL_STACK_SIZE * 3,
+                NULL,
+                (tskIDLE_PRIORITY + 1UL),
+                (TaskHandle_t *)NULL);
+    
+    xTaskCreate(v_display_task,
+                "Display Task",
+                configMINIMAL_STACK_SIZE * 8,
                 NULL,
                 (tskIDLE_PRIORITY + 1UL),
                 (TaskHandle_t *)NULL);
