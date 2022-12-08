@@ -13,7 +13,7 @@
 #define ACCEL_XYZ_BUFFER_LEN       3
 #define ACCEL_XYZ_BUFFER_FULL_LEN  6
 #define ACCEL_ERROR_STATUS         0xEFFF
-#define ACCEL_ORIENT_UNKNOWN       0x06
+#define ACCEL_ORIENT_UNKNOWN       0x00
 #define ACCEL_THRESHOLD            800
 
 typedef struct accel_measurements {

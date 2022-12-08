@@ -6,6 +6,8 @@
 #include "network_event_handler.hpp"
 #include "network_definitions.hpp"
 #include "shared_resources.hpp"
+#include "memory_layout_helpers.hpp"
+#include "network_configuration/netconfig.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
@@ -15,6 +17,7 @@
 #include "nvs_flash.h"
 #include "esp_event.h"
 #include "esp_netif.h"
+#include "esp_err.h"
 
 #include "lwip/sockets.h"
 #include "lwip/dns.h"
@@ -22,6 +25,52 @@
 
 #include "esp_log.h"
 #include "mqtt_client.h"
+
+#include <stdio.h>
+#include <string.h>
+
+
+/* On connect, send cube configuration to mqtt queue */
+static void send_cube_config()
+{
+    for (int i = 1; i <= 6; i++) {
+        cube_config conf = load_configuration(flash, i);
+
+        char data[MAX_MESSAGE_BUFFER_SIZE];
+        char topic[] = MQTT_TOPIC_CONFIG;
+
+        sprintf(data, "{tag:%02Xcolor:%06X}", message_tag::CUBE_SIDE_CONFIG, conf.color);
+        int data_size = strlen(data);
+        char* mqtt_data = mqtt_buffer->insert(data, data_size);
+
+        message msg = {
+            .data = mqtt_data,
+            .topic = topic,
+            .data_len = data_size
+        };
+        mqtt_transmit_queue->send_back(&msg);
+    }
+}
+
+/* On connect, send cube configuration to mqtt queue */
+static void send_network_joined()
+{
+    for (int i = 1; i <= 6; i++) {
+        char data[MAX_MESSAGE_BUFFER_SIZE];
+        char topic[] = MQTT_TOPIC_CONFIG;
+
+        sprintf(data, "{tag:%02Xaddress:%04X}", message_tag::CUBE_JOINED, 0xFFFF);
+        int data_size = strlen(data);
+        char* mqtt_data = mqtt_buffer->insert(data, data_size);
+
+        message msg = {
+            .data = mqtt_data,
+            .topic = topic,
+            .data_len = data_size
+        };
+        mqtt_transmit_queue->send_back(&msg);
+    }
+}
 
 
 /*
@@ -34,7 +83,9 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
 
     esp_mqtt_event_handle_t event = (esp_mqtt_event_handle_t)event_data;
     client = event->client;
+
     int msg_id;
+    message msg;
 
     switch ((esp_mqtt_event_id_t)event_id)
     {
@@ -43,8 +94,11 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
 
         xEventGroupSetBits(network_event_group, MQTT_CONNECTED_NETWORK_EVENT_BIT);
         // Subscribe to required topics
-        msg_id = esp_mqtt_client_subscribe(client, "/topic/test1", 0);
+        msg_id = esp_mqtt_client_subscribe(client, "gyro/cube", 0);
         ESP_LOGI(NETWORK_LOG_TAG, "sent subscribe successful, msg_id=%d", msg_id);
+
+        //send_cube_config();
+        //send_network_joined();
 
         break;
     case MQTT_EVENT_DISCONNECTED:
@@ -68,7 +122,7 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
     case MQTT_EVENT_DATA:
         ESP_LOGI(NETWORK_LOG_TAG, "MQTT_EVENT_DATA");
 
-        message msg = {
+        msg = {
             .data = event->data,
             .topic = event->topic,
             .data_len = event->data_len
@@ -90,46 +144,45 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
 /* Start MQTT application */
 static void mqtt_app_start(void)
 {
-    ESP_LOGI(NETWORK_LOG_TAG, "STARTING MQTT");
     esp_mqtt_client_config_t mqttConfig;
-    mqttConfig.uri = "mqtt://192.168.1.4:1883";
+    mqttConfig.uri = MQTT_URI;
+    mqttConfig.host = MQTT_HOST;
+    mqttConfig.event_handle = NULL;
     
     client = esp_mqtt_client_init(&mqttConfig);
-    esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, client);
+    esp_mqtt_client_register_event(client, MQTT_EVENT_ANY, mqtt_event_handler, client);
     esp_mqtt_client_start(client);
 }
 
 /*
- * @brief Simple event handler to monitor the mqtt/wifi connection
+ * @brief Simple event handler to monitor the wifi connection
  */
-esp_err_t network_event_handler(void *ctx, system_event_t *event)
+void network_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
-    switch (event->event_id)
+    switch (event_id)
     {
     // STA configured state
-    case SYSTEM_EVENT_STA_START:
+    case WIFI_EVENT_STA_START:
         esp_wifi_connect();
         ESP_LOGI(NETWORK_LOG_TAG, "Trying to connect with Wi-Fi\n");
         break;
     // STA connected to AP state
-    case SYSTEM_EVENT_STA_CONNECTED:
+    case WIFI_EVENT_STA_CONNECTED:
         ESP_LOGI(NETWORK_LOG_TAG, "Wi-Fi connected\n");
         break;
     // STA received IP address state 
-    case SYSTEM_EVENT_STA_GOT_IP:
+    case IP_EVENT_STA_GOT_IP:
         ESP_LOGI(NETWORK_LOG_TAG, "Got IP: starting MQTT Client\n");
         mqtt_app_start();
         break;
     // Connection lost state
-    case SYSTEM_EVENT_STA_DISCONNECTED:
+    case WIFI_EVENT_STA_DISCONNECTED:
         ESP_LOGI(NETWORK_LOG_TAG, "Disconnected: Retrying Wi-Fi\n");
         esp_wifi_connect();
         break;
-
     default:
         break;
     }
-    return ESP_OK;
 }
 
 /* Initialize endpoint with Wi-Fi and Mqtt stack */
@@ -143,17 +196,29 @@ void init_wifi_mqtt(void)
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
-    ESP_ERROR_CHECK(esp_event_loop_init(network_event_handler, (void*)NULL));
+    esp_event_handler_instance_t wifi_event_handler_instance;
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
+                                                        ESP_EVENT_ANY_ID,
+                                                        &network_event_handler,
+                                                        NULL,
+                                                        &wifi_event_handler_instance));
+    esp_event_handler_instance_t ip_event_handler_instance;
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT,
+                                                        IP_EVENT_STA_GOT_IP,
+                                                        &network_event_handler,
+                                                        NULL,
+                                                        &ip_event_handler_instance));
 
-    wifi_config_t wifi_config;
-    wifi_config.sta = {
-        .ssid = "V46D-1",
-        .password = "2483124831",
-        .threshold = {
-            .authmode = WIFI_AUTH_WPA2_PSK,
+    wifi_config_t wifi_config = {
+        .sta = {
+            { .ssid = SSID },
+            { .password = PSWD },
+            .threshold = {
+                .authmode = WIFI_AUTH_WPA2_PSK,
+            }
         }
     };
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA) );
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config) );
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
 }

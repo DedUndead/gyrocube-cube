@@ -62,7 +62,9 @@ void v_accelerometer_task(void* pvParameters)
         sample_sem.take();
 
         uint8_t side = accelerometer.get_side();
-        buffer.put(side);
+        if (side != ACCEL_ORIENT_UNKNOWN) {
+            buffer.put(side);
+        }
 
         // Cube should be stable for BUFFER_WINDOW_SIZE * SAMPLE_TIMER_MS ms to signal change
         if (buffer.full() && all_equal(buffer) && side != last_sample) {

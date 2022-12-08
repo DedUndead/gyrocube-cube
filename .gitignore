@@ -2,3 +2,6 @@
 .vscode/
 build/
 sdkconfig.*
+
+# Do not include private network configuration
+rtos/tasks/network_configuration/netconfig.h

@@ -5,6 +5,8 @@
 /* Network Definitions */
 #define MQTT_CONNECTED_NETWORK_EVENT_BIT 0x01
 
+#define MAX_MESSAGE_BUFFER_SIZE 50
+
 enum message_tag {
     CUBE_JOINED            = 0x01,
     CUBE_DISCONNECTED      = 0x02,
